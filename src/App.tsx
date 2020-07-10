@@ -1,154 +1,207 @@
-import React from "react";
-import "./App.css";
+import React from 'react';
+import './App.css';
+
+interface ICell {
+    val: number;
+    col: number;
+    row: number;
+}
+
+function currentCellFibChecker(cell: ICell, i: number, currArr: any, returnedAcc: any) {
+    if (i < 4 || cell.val < 3) {
+        return null;
+    }
+
+    if (fibbonacciChecker(cell.val)) {
+        const series: number[] = fibonacci_series(cell.val);
+        const shortenSeries = series.slice(
+            series.indexOf(cell.val) - 4,
+            series.indexOf(cell.val) + 1
+        );
+
+        if (currArr.slice(i - 4, i).every((c: ICell, i: number) => c.val === shortenSeries[i])) {
+            returnedAcc.push(...currArr.slice(i - 4, i), cell);
+        }
+    }
+}
 
 function fibbonacciChecker(num: number) {
-  //check if number is in 31 bit space to prevent floating point errors
-  //if this is IE isSafeInteger needs to be polyfilled
-  if (!Number.isSafeInteger(num)) {
-    return "floating point bounds exception";
-  }
+    if (!Number.isSafeInteger(num)) {
+        return 'floating point bounds exception';
+    }
 
-  //declared here because of hoisting
-  var base = 5 * Math.pow(num, 2),
-    posBias = Math.sqrt(base + 4) % 1 === 0,
-    negBias = Math.sqrt(base - 4) % 1 === 0;
+    var base = 5 * Math.pow(num, 2),
+        posBias = Math.sqrt(base + 4) % 1 === 0,
+        negBias = Math.sqrt(base - 4) % 1 === 0;
 
-  //filter true conditions
-  if (posBias || negBias) {
-    return true;
-  }
-  return false;
+    if (posBias || negBias) {
+        return true;
+    }
+    return false;
 }
 
 function fibonacci_series(n: number) {
-  if (n === 1) {
-    return [0, 1];
-  } else {
-    const s: any = fibonacci_series(n - 1);
-    s.push(s[s.length - 1] + s[s.length - 2]);
-    return s;
-  }
+    if (n === 1) {
+        return [0, 1];
+    } else {
+        const s: any = fibonacci_series(n - 1);
+        s.push(s[s.length - 1] + s[s.length - 2]);
+        return s;
+    }
 }
 
-const initialMatrix = Array.from(Array(50), (_, rowIndex) => {
-  return Array.from(Array(50), (_, colIndex) => ({
-    col: colIndex,
-    row: rowIndex,
-    val: 0
-  }));
+const gridSize = 10;
+
+const totalInSpot = Array.from(Array(gridSize), (_, index) => {
+    return index;
 });
 
+const initialMatrix = Array.from(Array(10), (_, rowIndex) => {
+    return Array.from(Array(10), (_, colIndex) => ({
+        col: colIndex,
+        row: rowIndex,
+        val: 0,
+    }));
+}).flat();
+
 function App() {
-  const [matrixState, setMatrixState] = React.useState(initialMatrix);
-  const [clickedCell, setClickedCell] = React.useState<any>();
-  const [greenCell, setGreenCell] = React.useState<any>();
+    console.log(initialMatrix);
+    const [matrixState, setMatrixState] = React.useState<ICell[]>(initialMatrix);
+    const [clickedCell, setClickedCell] = React.useState<any>();
 
-  React.useEffect(() => {
-    if (clickedCell) {
-      setTimeout(() => setClickedCell(undefined), 200);
-    }
-  }, [clickedCell]);
-
-  const numberedVals = () =>
-    matrixState.reduce((acc, curr) => {
-      const returnedAcc = [...acc];
-
-      curr.forEach((cell, i) => {
-        if (i < 4 || cell.val < 3) {
-          return null;
+    React.useEffect(() => {
+        if (clickedCell) {
+            setTimeout(() => setClickedCell(undefined), 200);
         }
+    }, [clickedCell]);
 
-        if (fibbonacciChecker(cell.val)) {
-          const series = fibonacci_series(cell.val);
+    const numberedVals = React.useCallback(
+        () =>
+            totalInSpot.reduce((acc, lineIndex) => {
+                const returnedAccRows: any = [...acc];
 
-          if (curr.slice(i - 4, i).every((c, i) => c.val === series[i])) {
-            returnedAcc.push(...curr.slice(i - 4, i), cell);
-          }
-        }
-      });
-      return returnedAcc;
-    }, []);
+                const currentRow = matrixState.filter((s) => s.row === lineIndex);
+                const currentCol = matrixState.filter((s) => s.col === lineIndex);
 
-  React.useEffect(() => {
-    const s = numberedVals();
-    if (s.length > 0) {
-      s.forEach((a) => {
-        setTimeout(() => {
-          setMatrixState((prev) =>
-            prev.map((s) =>
-              s.map((x) =>
-                x.col === a.col && x.row === a.row ? { ...x, val: 0 } : x
-              )
-            )
-          );
-        }, 500);
-      });
-    }
-  }, [matrixState]);
+                currentRow.forEach((cell, rowIndex) => {
+                    if (rowIndex < 4 || cell.val < 2) {
+                        return null;
+                    }
 
-  const checker = (cell) => {
-    const n = numberedVals();
-    if (n.includes((a) => a.col === cell.col && a.row === cell.row)) {
-      return "green";
-    }
-  };
+                    if (fibbonacciChecker(cell.val)) {
+                        const series: number[] = fibonacci_series(cell.val + 1);
+                        const shortenSeries = series.slice(
+                            series.indexOf(cell.val) - 4,
+                            series.indexOf(cell.val)
+                        );
 
-  return (
-    <div>
-      <br />
-      {matrixState.map((row, i) => {
-        return (
-          <div key={i} style={{ display: "flex", flexDirection: "row" }}>
-            {row.map((cell) => {
-              return (
-                <div
-                  onClick={() => {
-                    setClickedCell(cell);
-                    setMatrixState((prev) => {
-                      return prev.map((row, i: number) => {
-                        if (cell.row === i) {
-                          return row.map((cell) => {
-                            return {
-                              ...cell,
-                              val: cell.val + 1
-                            };
-                          });
-                        } else {
-                          return row.map((c) => {
-                            return c.col === cell.col
-                              ? {
-                                  ...c,
-                                  val: c.val + 1
-                                }
-                              : c;
-                          });
+                        if (
+                            currentRow
+                                .slice(rowIndex - 4, rowIndex)
+                                .every((c: any, i: number) => c.val === shortenSeries[i])
+                        ) {
+                            returnedAccRows.push(...currentRow.slice(rowIndex - 4, rowIndex), cell);
                         }
-                      });
-                    });
-                  }}
-                  key={`${cell.col}${cell.row}`}
-                  style={{
-                    background:
-                      clickedCell &&
-                      (cell.row === clickedCell.row ||
-                        cell.col === clickedCell.col)
-                        ? "yellow"
-                        : "white",
-                    border: "1px solid black",
-                    width: 22,
-                    height: 22,
-                    cursor: "pointer"
-                  }}
-                >
-                  {cell.val}
-                </div>
-              );
+                    }
+                });
+
+                currentCol.forEach((cell, colIndex) => {
+                    if (colIndex < 4 || cell.val < 2) {
+                        return null;
+                    }
+
+                    if (fibbonacciChecker(cell.val)) {
+                        const series: number[] = fibonacci_series(cell.val + 1);
+                        const shortenSeries = series.slice(
+                            series.indexOf(cell.val) - 4,
+                            series.indexOf(cell.val)
+                        );
+
+                        if (
+                            currentCol
+                                .slice(colIndex - 4, colIndex)
+                                .every((c: any, i: number) => c.val === shortenSeries[i])
+                        ) {
+                            returnedAccRows.push(...currentCol.slice(colIndex - 4, colIndex), cell);
+                        }
+                    }
+                });
+
+                return returnedAccRows;
+            }, []),
+        [matrixState]
+    );
+
+    React.useEffect(() => {
+        const fibValues = numberedVals();
+        if (fibValues.length > 0) {
+            setTimeout(() => {
+                fibValues.forEach((cell: ICell) => {
+                    setMatrixState((prev) =>
+                        prev.map((c) =>
+                            c.row === cell.row && c.col === cell.col ? { ...c, val: 0 } : c
+                        )
+                    );
+                });
+            }, 200);
+        }
+    }, [matrixState, numberedVals]);
+
+    console.log(numberedVals());
+
+    const cellColor = (cell: ICell) => {
+        const fibValues: ICell[] = numberedVals();
+        if (fibValues.filter((c) => c.col === cell.col && c.row === cell.row).length > 0) {
+            return 'green';
+        } else if (clickedCell && (cell.row === clickedCell.row || cell.col === clickedCell.col)) {
+            return 'yellow';
+        } else {
+            return 'white';
+        }
+    };
+
+    return (
+        <div>
+            {totalInSpot.map((rowIndex, i) => {
+                return (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'row' }}>
+                        {matrixState
+                            .filter((s) => s.row === rowIndex)
+                            .map((cell) => {
+                                return (
+                                    <div
+                                        onClick={() => {
+                                            setClickedCell(cell);
+                                            setMatrixState((prev) => {
+                                                return prev.map((c) => {
+                                                    if (c.row === rowIndex || c.col === cell.col) {
+                                                        return {
+                                                            ...c,
+                                                            val: c.val + 1,
+                                                        };
+                                                    } else {
+                                                        return c;
+                                                    }
+                                                });
+                                            });
+                                        }}
+                                        key={`${cell.col}${cell.row}`}
+                                        style={{
+                                            background: cellColor(cell),
+                                            border: '1px solid black',
+                                            width: 20,
+                                            height: 20,
+                                            cursor: 'pointer',
+                                        }}>
+                                        {cell.val}
+                                    </div>
+                                );
+                            })}
+                    </div>
+                );
             })}
-          </div>
-        );
-      })}
-    </div>
-  );
+        </div>
+    );
 }
 
 export default App;
